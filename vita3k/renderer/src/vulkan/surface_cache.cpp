@@ -262,7 +262,7 @@ SurfaceRetrieveResult VKSurfaceCache::retrieve_color_surface_for_framebuffer(Mem
     vk::ImageUsageFlags surface_usages = vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eInputAttachment;
     if (state.features.support_shader_interlock)
         surface_usages |= vk::ImageUsageFlagBits::eStorage;
-    image.init_image(surface_usages, vkutil::default_comp_mapping, image_create_flags, image_info_pNext, state.deep_stencil_use);
+    image.init_image(surface_usages, vkutil::default_comp_mapping, image_create_flags, image_info_pNext);
 
     // do it in the prerender if we read from this texture in the same scene (although this would be useless)
     vk::CommandBuffer cmd_buffer = context->prerender_cmd;
@@ -688,8 +688,7 @@ SurfaceRetrieveResult VKSurfaceCache::retrieve_depth_stencil_for_framebuffer(Sce
 
     image.width = width;
     image.height = height;
-//    image.format = vk::Format::eD24UnormS8Uint;
-    image.format = state.deep_stencil_use;
+    image.format = vk::Format::eD24UnormS8Uint;
     image.layout = vkutil::ImageLayout::Undefined;
     image.init_image(vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eSampled);
 
@@ -839,8 +838,7 @@ std::optional<TextureLookupResult> VKSurfaceCache::retrieve_depth_stencil_as_tex
             vk::ImageViewCreateInfo view_info{
                 .image = cached_info.texture.image,
                 .viewType = vk::ImageViewType::e2D,
-    //            .format = vk::Format::eD24UnormS8Uint,
-                .format = state.deep_stencil_use,
+                .format = vk::Format::eD24UnormS8Uint,
                 .components = {},
                 .subresourceRange = range
             };
@@ -863,8 +861,7 @@ std::optional<TextureLookupResult> VKSurfaceCache::retrieve_depth_stencil_as_tex
         return TextureLookupResult{
             img_view,
             vkutil::ImageLayout::DepthStencilReadOnly,
-//            vk::Format::eD24UnormS8Uint
-            state.deep_stencil_use
+            vk::Format::eD24UnormS8Uint
         };
     }
 
@@ -886,8 +883,7 @@ std::optional<TextureLookupResult> VKSurfaceCache::retrieve_depth_stencil_as_tex
         // no compatible read surface found
 
         DepthSurfaceView read_only{
-          // .depth_view = vkutil::Image(width, height, vk::Format::eD24UnormS8Uint),
-            .depth_view = vkutil::Image(width, height, state.deep_stencil_use),
+            .depth_view = vkutil::Image(width, height, vk::Format::eD24UnormS8Uint),
             .scene_timestamp = 0,
             .delta_col = delta_col_samples,
             .delta_row = delta_row_samples,
@@ -911,8 +907,7 @@ std::optional<TextureLookupResult> VKSurfaceCache::retrieve_depth_stencil_as_tex
         vk::ImageViewCreateInfo view_info{
             .image = read_only.depth_view.image,
             .viewType = vk::ImageViewType::e2D,
-       //     .format = vk::Format::eD24UnormS8Uint,
-            .format = state.deep_stencil_use,
+            .format = vk::Format::eD24UnormS8Uint,
             .components = {},
             .subresourceRange = range
         };

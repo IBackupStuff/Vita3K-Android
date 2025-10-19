@@ -1,5 +1,5 @@
 // Vita3K emulator project
-// Copyright (C) 2025 Vita3K team
+// Copyright (C) 2024 Vita3K team
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -23,7 +23,6 @@
 
 #include <util/safe_time.h>
 
-#include <util/log.h>
 #include <util/tracy.h>
 TRACY_MODULE_NAME(SceProcessmgr);
 
@@ -102,9 +101,6 @@ EXPORT(int, sceKernelCDialogSetLeaseLimit) {
 
 EXPORT(int, sceKernelCallAbortHandler, uint32_t param1, uint32_t param2) {
     TRACY_FUNC(sceKernelCallAbortHandler, param1, param2);
-    LOG_TRACE("param1 VAL = {}", param1);
-    LOG_TRACE("param2 VAL = {}", param2);
-    
     return UNIMPLEMENTED();
 }
 

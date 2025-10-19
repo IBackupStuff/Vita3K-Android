@@ -17,14 +17,15 @@
 
 #include "renderer/vulkan/screen_renderer.h"
 
-#include <SDL_vulkan.h>
+#include <SDL3/SDL_vulkan.h>
+// #include <SDL3/SDL_error.h>
+// #include <SDL3/SDL_video.h>
 
 #include "renderer/vulkan/state.h"
 #include "util/log.h"
 #include "vkutil/vkutil.h"
 
 #ifdef __ANDROID__
-#include <SDL.h>
 #include <jni.h>
 
 static bool has_surface = false;
@@ -50,7 +51,7 @@ bool ScreenRenderer::create(SDL_Window *window) {
     }
 
     VkSurfaceKHR surface = VK_NULL_HANDLE;
-    bool surface_error = SDL_Vulkan_CreateSurface(window, state.instance, &surface);
+    bool surface_error = SDL_Vulkan_CreateSurface(window, state.instance, nullptr, &surface);
     if (!surface_error) {
         const char *error = SDL_GetError();
         LOG_ERROR("Failed to create vulkan surface. SDL Error: {}.", error);
@@ -108,23 +109,15 @@ bool ScreenRenderer::setup(uint8_t vk_idx) {
 
     switch(vk_idx){
         case 1:
-            present_mode = vk::PresentModeKHR::eFifoRelaxed;
-            break;
-        case 2:
             present_mode = vk::PresentModeKHR::eFifo;
+            break;
+/*        case 2:
+            present_mode = vk::PresentModeKHR::eFifoRelaxed;
             break;
         case 3:
             present_mode = vk::PresentModeKHR::eImmediate;
             break;
-        case 4:
-            present_mode = vk::PresentModeKHR::eSharedDemandRefresh;
-            break;
-        case 5:
-            present_mode = vk::PresentModeKHR::eSharedContinuousRefresh;
-            break;
-        case 6:
-            present_mode = vk::PresentModeKHR::eFifoLatestReadyEXT;
-            break;
+*/
         default:
             present_mode = vk::PresentModeKHR::eMailbox;
             break;
@@ -153,7 +146,7 @@ void ScreenRenderer::create_swapchain() {
         extent = surface_capabilities.currentExtent;
     } else {
         int width, height;
-        SDL_Vulkan_GetDrawableSize(window, &width, &height);
+        SDL_GetWindowSizeInPixels(window, &width, &height);
         extent.width = std::clamp<uint32_t>(width, surface_capabilities.minImageExtent.width, surface_capabilities.maxImageExtent.width);
         extent.height = std::clamp<uint32_t>(height, surface_capabilities.minImageExtent.height, surface_capabilities.maxImageExtent.height);
     }
@@ -170,12 +163,11 @@ void ScreenRenderer::create_swapchain() {
         vk::ImageUsageFlags surface_usage = vk::ImageUsageFlagBits::eColorAttachment;
 
         vk::ImageUsageFlags fsr_flags = vk::ImageUsageFlagBits::eTransferDst;
-
         if (!state.is_adreno_turnip)
             // workaround for a Turnip driver bug: adding storage flag here breaks the swapchain
             // and fsr works fine without this flag on Adreno
             fsr_flags |= vk::ImageUsageFlagBits::eStorage;
-        
+
         if (surface_capabilities.supportedUsageFlags & vk::ImageUsageFlagBits::eStorage)
             // needed for FSR
             surface_usage |= fsr_flags;
@@ -310,7 +302,7 @@ bool ScreenRenderer::acquire_swapchain_image(bool start_render_pass) {
             state.device.waitIdle();
             destroy_swapchain();
             int width, height;
-            SDL_Vulkan_GetDrawableSize(window, &width, &height);
+            SDL_GetWindowSizeInPixels(window, &width, &height);
             // don't render anything when the window is minimized
             if (width == 0 || height == 0)
                 return false;
@@ -402,9 +394,8 @@ void ScreenRenderer::render(vk::ImageView image_view, vk::ImageLayout layout, co
         current_cmd_buffer.beginRenderPass(pass_info, vk::SubpassContents::eInline);
     }
 #endif
-    
 }
-    
+
 void ScreenRenderer::swap_window() {
     if (!current_cmd_buffer) {
         swapchain_image_idx = ~0;
@@ -436,7 +427,7 @@ void ScreenRenderer::swap_window() {
     auto result = state.general_queue.presentKHR(&present_info);
     if (result == vk::Result::eSuboptimalKHR) {
         int width, height;
-        SDL_Vulkan_GetDrawableSize(window, &width, &height);
+        SDL_GetWindowSizeInPixels(window, &width, &height);
 
         if (width != extent.width || height != extent.height) {
             state.device.waitIdle();
@@ -453,7 +444,7 @@ void ScreenRenderer::swap_window() {
         destroy_swapchain();
 
         int width, height;
-        SDL_Vulkan_GetDrawableSize(window, &width, &height);
+        SDL_GetWindowSizeInPixels(window, &width, &height);
 
         if (width > 0 && height > 0) {
             create_swapchain();
@@ -563,8 +554,7 @@ void ScreenRenderer::create_render_pass() {
     // renderpass after post processing filter
     color_attachment
         .setLoadOp(vk::AttachmentLoadOp::eLoad)
-   //     .setInitialLayout(vk::ImageLayout::eGeneral);
-        .setInitialLayout(vk::ImageLayout::ePresentSrcKHR);
+        .setInitialLayout(vk::ImageLayout::eGeneral);
     post_filter_render_pass = state.device.createRenderPass(pass_info);
 
 #ifdef ANDROID
@@ -581,7 +571,7 @@ void ScreenRenderer::create_surface_image() {
 
     vk::BufferCreateInfo buffer_info{
         // make sure it is big enough
-        .size = 1200 * 680 * sizeof(uint32_t),
+        .size = 1024 * 1024 * sizeof(uint32_t),
         .usage = vk::BufferUsageFlagBits::eTransferSrc,
         .sharingMode = vk::SharingMode::eExclusive
     };

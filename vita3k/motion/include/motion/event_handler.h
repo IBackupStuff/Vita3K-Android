@@ -15,25 +15,8 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-#include <shader/usse_translator.h>
-#include <util/log.h>
+#pragma once
 
-bool shader::usse::USSETranslatorVisitor::illegal22() {
-    LOG_ERROR("Illegal shader opcode: 22");
-    return false;
-}
-
-bool shader::usse::USSETranslatorVisitor::illegal23() {
-    LOG_ERROR("Illegal shader opcode: 23");
-    return false;
-}
-
-bool shader::usse::USSETranslatorVisitor::illegal24() {
-    LOG_ERROR("Illegal shader opcode: 24");
-    return false;
-}
-
-bool shader::usse::USSETranslatorVisitor::illegal27() {
-    LOG_ERROR("Illegal shader opcode: 27");
-    return false;
-}
+#include <SDL3/SDL_events.h>
+#include <emuenv/state.h>
+void handle_motion_event(EmuEnvState &emuenv, const SDL_GamepadSensorEvent &sensor);

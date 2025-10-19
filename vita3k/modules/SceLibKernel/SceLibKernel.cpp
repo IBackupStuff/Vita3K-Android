@@ -628,8 +628,7 @@ EXPORT(SceUID, sceIoOpen, const char *file, const int flags, const SceMode mode)
         return RET_ERROR(SCE_ERROR_ERRNO_EINVAL);
     }
 
-    // emmc 4.p lowest respond time around 22.8 ms, 25ms should be okay
-    std::this_thread::sleep_for(std::chrono::milliseconds(25)); 
+    std::this_thread::sleep_for(std::chrono::milliseconds(20));
 
     LOG_INFO("Opening file: {}", file);
     return open_file(emuenv.io, file, flags, emuenv.pref_path, export_name);

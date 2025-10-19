@@ -16,9 +16,9 @@ set(USE_DYNARMIC TRUE)
 include(ProcessorCount)
 ProcessorCount(CPU_COUNT)
 
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED OFF)
-set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS ON)
 set(CMAKE_OSX_DEPLOYMENT_TARGET 12.0)
 
 if(ANDROID)
@@ -28,6 +28,7 @@ if(ANDROID)
     PROPERTY
     NO_SYSTEM_FROM_IMPORTED ON
     )
+	set(ALLOW_EXTERNAL_SPIRV_TOOLS ON)
 
 	string(APPEND CMAKE_CXX_FLAGS " -Wl,-Bsymbolic -Wno-unused-command-line-argument")
 	string(APPEND CMAKE_C_FLAGS " -Wl,-Bsymbolic -Wno-unused-command-line-argument")

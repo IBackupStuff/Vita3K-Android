@@ -29,7 +29,7 @@
 #include <util/fs.h>
 #include <util/log.h>
 
-#include <SDL.h>
+#include <SDL3/SDL_cpuinfo.h>
 
 // don't use the dispatch version, because we always hash a small amount
 // with a known size
@@ -149,7 +149,7 @@ void PipelineCache::init(bool support_rasterized_order_access) {
 
         // first vertex
         std::array<vk::DescriptorSetLayoutBinding, 16> layout_bindings;
-        for (uint8_t i = 0; i < 16; i++) {
+        for (uint32_t i = 0; i < 16; i++) {
             layout_bindings[i] = {
                 .binding = i,
                 .descriptorType = vk::DescriptorType::eCombinedImageSampler,
@@ -157,7 +157,7 @@ void PipelineCache::init(bool support_rasterized_order_access) {
                 .stageFlags = vk::ShaderStageFlagBits::eVertex
             };
         }
-        for (uint8_t i = 1; i <= 16; i++) {
+        for (uint32_t i = 1; i <= 16; i++) {
             vk::DescriptorSetLayoutCreateInfo descriptor_info{
                 .bindingCount = i,
                 .pBindings = layout_bindings.data()
@@ -166,10 +166,10 @@ void PipelineCache::init(bool support_rasterized_order_access) {
         }
 
         // then fragment
-        for (uint8_t i = 0; i < 16; i++) {
+        for (uint32_t i = 0; i < 16; i++) {
             layout_bindings[i].stageFlags = vk::ShaderStageFlagBits::eFragment;
         }
-        for (uint8_t i = 1; i <= 16; i++) {
+        for (uint32_t i = 1; i <= 16; i++) {
             vk::DescriptorSetLayoutCreateInfo descriptor_info{
                 .bindingCount = i,
                 .pBindings = layout_bindings.data()
@@ -179,8 +179,8 @@ void PipelineCache::init(bool support_rasterized_order_access) {
     }
 
     // compute all possible pipeline layouts
-    for (uint8_t vert_texture_count = 0; vert_texture_count <= 16; vert_texture_count++) {
-        for (uint8_t frag_texture_count = 0; frag_texture_count <= 16; frag_texture_count++) {
+    for (uint32_t vert_texture_count = 0; vert_texture_count <= 16; vert_texture_count++) {
+        for (uint32_t frag_texture_count = 0; frag_texture_count <= 16; frag_texture_count++) {
             vk::PipelineLayoutCreateInfo layout_info{};
             vk::DescriptorSetLayout set_layouts[] = { uniforms_layout, attachments_layout, vertex_textures_layout[vert_texture_count], fragment_textures_layout[frag_texture_count] };
             layout_info.setSetLayouts(set_layouts);
@@ -188,12 +188,14 @@ void PipelineCache::init(bool support_rasterized_order_access) {
         }
     }
 
-#ifndef ANDROID
+// #ifndef ANDROID
+    if(!state.is_adreno_stock || !state.is_adreno_turnip){ // does add this support cause black screen in adreno?
     {
         // look for rgb vertex attribute support
         // we need to look at each format because it is not the same for all usual 3-component formats (checked on AMD Radeon HD 7800)
-        // no need to test for 32-bit types, they are always supported
+        // we also need to test for 32-bit types, some potato GPU maybe not supported
         vk::Format formats[] = {
+            vk::Format::eR32G32B32Sint, vk::Format::eR32G32B32Uint,
             vk::Format::eR16G16B16Unorm, vk::Format::eR16G16B16Snorm,
             vk::Format::eR16G16B16Uscaled, vk::Format::eR16G16B16Sscaled,
             vk::Format::eR16G16B16Uint, vk::Format::eR16G16B16Sint,
@@ -221,17 +223,24 @@ void PipelineCache::init(bool support_rasterized_order_access) {
                 unsupported_rgb_vertex_attribute_formats.erase(fmt);
         }
         state.features.support_rgb_attributes = unsupported_rgb_vertex_attribute_formats.empty();
+
+        LOG_INFO("support_scaled_attribute_formats = {}", state.features.support_scaled_attribute_formats);
+        LOG_INFO("support_rgb_attributes = {}", state.features.support_rgb_attributes); 
     }
-#endif
+    }
+// #endif
     
     support_coherent_framebuffer_fetch = support_rasterized_order_access;
+    LOG_INFO("support_rasterized_order_access = {}", support_rasterized_order_access);
 
-    const int nb_logical_threads = SDL_GetCPUCount();
+    const int nb_logical_threads = SDL_GetNumLogicalCPUCores();
     // took this from RPCS3 (slightly modified)
     if (nb_logical_threads > 12)
         nb_worker_threads = 6;
     else if (nb_logical_threads > 8)
         nb_worker_threads = 4;
+    else if (nb_logical_threads >= 6)
+        nb_worker_threads = 3;
     else if (nb_logical_threads >= 4)
         nb_worker_threads = 2;
     else
@@ -256,7 +265,7 @@ void PipelineCache::set_async_compilation(bool enable) {
     if (enable) {
         LOG_INFO("Enabling asynchronous pipeline compilation with {} threads", nb_worker_threads);
         // launch all the threads
-        for (uint8_t i = 0; i < nb_worker_threads; i++) {
+        for (int i = 0; i < nb_worker_threads; i++) {
             std::thread thread(&PipelineCache::compiler_thread, this, std::ref(*state.mem));
             thread.detach();
         }
@@ -264,7 +273,7 @@ void PipelineCache::set_async_compilation(bool enable) {
         LOG_INFO("Asynchronous pipeline compilation is now disabled");
 
         // we assume that by the time set_async_compilation is called again with enable=true, all previous worker threads have already exited
-        for (uint8_t i = 0; i < nb_worker_threads; i++)
+        for (int i = 0; i < nb_worker_threads; i++)
             // if a thread receives nullptr, it exits
             pipeline_compile_queue.enqueue(nullptr);
     }
@@ -441,9 +450,10 @@ vk::PipelineShaderStageCreateInfo PipelineCache::retrieve_shader(const SceGxmPro
 
     const std::string hash_text = hex_string(hash);
 
-    LOG_INFO("Generating vulkan spv shader {}", hash_text);
     const std::string shader_version = fmt::format("vk{}", shader::CURRENT_VERSION);
 
+    LOG_INFO("Generating vulkan spv shader {}, VERSION: {}", hash_text, shader_version);
+    
     shader::usse::SpirvCode source = load_spirv_shader(*program, state.features, true, hints, maskupdate, state.shaders_path, state.shaders_log_path, shader_version, true);
 
     vk::ShaderModuleCreateInfo shader_info{
@@ -517,8 +527,7 @@ vk::RenderPass PipelineCache::retrieve_render_pass(vk::Format format, bool force
     vk::AttachmentLoadOp load_op = force_load ? vk::AttachmentLoadOp::eLoad : vk::AttachmentLoadOp::eClear;
     vk::AttachmentStoreOp store_op = force_store ? vk::AttachmentStoreOp::eStore : vk::AttachmentStoreOp::eDontCare;
     vk::AttachmentDescription ds_attachment{
-    //    .format = vk::Format::eD24UnormS8Uint,
-        .format = state.deep_stencil_use,
+        .format = vk::Format::eD24UnormS8Uint,
         .samples = vk::SampleCountFlagBits::e1,
         .loadOp = load_op,
         .storeOp = store_op,
@@ -635,6 +644,7 @@ vk::PipelineVertexInputStateCreateInfo PipelineCache::get_vertex_input_state(con
         if (info.regformat) {
             // use the data from the shader itself
             component_count = info.component_count;
+
             switch (info.gxm_type) {
             case SCE_GXM_PARAMETER_TYPE_U8:
             case SCE_GXM_PARAMETER_TYPE_S8:
@@ -779,7 +789,6 @@ vk::Pipeline PipelineCache::compile_pipeline(SceGxmPrimitiveType type, vk::Rende
     const bool use_shader_interlock = state.features.support_shader_interlock && gxm_fragment_shader->is_frag_color_used();
 
     const vk::PipelineRasterizationStateCreateInfo rasterizer{
-        // .depthClampEnable = state.physical_device_features.depthClamp,
         .polygonMode = translate_polygon_mode(record.front_polygon_mode),
         .cullMode = translate_cull_mode(record.cull_mode),
         // front face is always counter clockwise
@@ -823,21 +832,21 @@ vk::Pipeline PipelineCache::compile_pipeline(SceGxmPrimitiveType type, vk::Rende
 
     // all of these can be changed at any time using the vita graphics api (like opengl)
     // Because each one can take a lot of different values, it's better to set them as dynamic
-    static vk::DynamicState dynamic_states[] = {
+    const std::array dynamic_states = {
         vk::DynamicState::eViewport,
         vk::DynamicState::eScissor,
-        vk::DynamicState::eLineWidth,
         vk::DynamicState::eStencilCompareMask,
         vk::DynamicState::eStencilReference,
         vk::DynamicState::eStencilWriteMask,
         vk::DynamicState::eDepthBias,
-
+        vk::DynamicState::eLineWidth,
+    
         vk::DynamicState::eBlendConstants,
         vk::DynamicState::eDepthBounds,
         vk::DynamicState::ePrimitiveTopology,
         vk::DynamicState::eViewportWithCount,
         vk::DynamicState::eScissorWithCount,
-        vk::DynamicState::eStencilOp
+        vk::DynamicState::eStencilOp,
     };
     vk::PipelineDynamicStateCreateInfo dynamic_info{};
     dynamic_info.setDynamicStates(dynamic_states);

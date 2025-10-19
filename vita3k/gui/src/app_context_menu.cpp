@@ -1,5 +1,5 @@
 // Vita3K emulator project
-// Copyright (C) 2024 Vita3K team
+// Copyright (C) 2025 Vita3K team
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -29,8 +29,8 @@
 #include <util/log.h>
 #include <util/safe_time.h>
 
-#include <SDL.h>
-#include <SDL_misc.h>
+#include <SDL3/SDL_cpuinfo.h>
+#include <SDL3/SDL_misc.h>
 #undef main
 
 #include <boost/algorithm/string/replace.hpp>
@@ -39,14 +39,15 @@
 #include <regex>
 
 #ifdef ANDROID
+#include <SDL3/SDL_system.h>
 #include <jni.h>
 
 void create_shortcut(const std::string_view game_path, const std::string_view game_id, const std::string_view game_name){
     // retrieve the JNI environment.
-    JNIEnv *env = reinterpret_cast<JNIEnv *>(SDL_AndroidGetJNIEnv());
+    JNIEnv *env = reinterpret_cast<JNIEnv *>(SDL_GetAndroidJNIEnv());
 
     // retrieve the Java instance of the SDLActivity
-    jobject activity = reinterpret_cast<jobject>(SDL_AndroidGetActivity());
+    jobject activity = reinterpret_cast<jobject>(SDL_GetAndroidActivity());
 
     // find the Java class of the activity. It should be SDLActivity or a subclass of it.
     jclass clazz(env->GetObjectClass(activity));
@@ -66,9 +67,9 @@ void create_shortcut(const std::string_view game_path, const std::string_view ga
     env->DeleteLocalRef(clazz);
 
     if(result)
-        SDL_AndroidShowToast("Shortcut successfully created!", 0, -1, 0, 0);
+        SDL_ShowAndroidToast("Shortcut successfully created!", 0, -1, 0, 0);
     else
-        SDL_AndroidShowToast("Failed to create shortcut.", 1, -1, 0, 0);
+        SDL_ShowAndroidToast("Failed to create shortcut.", 1, -1, 0, 0);
 }
 #endif
 

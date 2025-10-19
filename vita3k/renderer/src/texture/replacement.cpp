@@ -1,5 +1,5 @@
 // Vita3K emulator project
-// Copyright (C) 2024 Vita3K team
+// Copyright (C) 2025 Vita3K team
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -30,7 +30,7 @@
 
 #ifdef ANDROID
 // for message popup
-#include <SDL_system.h>
+#include <SDL3/SDL_system.h>
 #endif
 
 static constexpr bool log_texture_import = false;
@@ -519,7 +519,7 @@ bool TextureCache::import_configure_texture() {
             LOG_ERROR_ONCE("BCn textures are not supported by this device");
 #ifdef ANDROID
             // this issue is most likely to happen on android
-            SDL_AndroidShowToast("BCn textures are not supported by this device!", 1, -1, 0, 0);
+            SDL_ShowAndroidToast("BCn textures are not supported by this device!", 1, -1, 0, 0);
 #endif
             return false;
         }

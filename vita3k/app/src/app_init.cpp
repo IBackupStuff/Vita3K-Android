@@ -43,19 +43,20 @@
 
 #include <gdbstub/functions.h>
 
-#include <SDL.h>
-#include <SDL_video.h>
-#include <SDL_vulkan.h>
+#include <SDL3/SDL_filesystem.h>
+#include <SDL3/SDL_video.h>
 
 #ifdef ANDROID
-#include <SDL.h>
 #include <boost/range/iterator_range.hpp>
+#include <SDL3/SDL_hints.h>
+#include <SDL3/SDL_messagebox.h>
+#include <SDL3/SDL_system.h>
 #include <jni.h>
 
 #ifndef __arm__
 auto load_custom_driver(const std::string &driver_name) {
     libadreno_var val = {false, "", "", "", "", ""};
-    fs::path driver_path = fs::path(SDL_AndroidGetInternalStoragePath()) / "driver" / driver_name / "/";
+    fs::path driver_path = fs::path(SDL_GetAndroidInternalStoragePath()) / "driver" / driver_name / "/";
 
     if (!fs::exists(driver_path)) {
         LOG_ERROR("Could not find driver {}", driver_name);
@@ -85,10 +86,10 @@ auto load_custom_driver(const std::string &driver_name) {
     // retrieve the app lib dir using jni
     {
         // retrieve the JNI environment.
-        JNIEnv *env = reinterpret_cast<JNIEnv *>(SDL_AndroidGetJNIEnv());
+        JNIEnv *env = reinterpret_cast<JNIEnv *>(SDL_GetAndroidJNIEnv());
         env->PushLocalFrame(10);
         // retrieve the Java instance of the SDLActivity
-        jobject activity = reinterpret_cast<jobject>(SDL_AndroidGetActivity());
+        jobject activity = reinterpret_cast<jobject>(SDL_GetAndroidActivity());
         // the following calls activity.getApplicationInfo().nativeLibraryDir
         jclass actibity_class = env->GetObjectClass(activity);
         jmethodID getApplicationInfo_method = env->GetMethodID(actibity_class, "getApplicationInfo", "()Landroid/content/pm/ApplicationInfo;");
@@ -120,23 +121,11 @@ void update_viewport(EmuEnvState &state) {
     int w = 0;
     int h = 0;
 
-    switch (state.renderer->current_backend) {
-    case renderer::Backend::OpenGL:
-        SDL_GL_GetDrawableSize(state.window.get(), &w, &h);
-        break;
-
-    case renderer::Backend::Vulkan:
-        SDL_Vulkan_GetDrawableSize(state.window.get(), &w, &h);
-        break;
-
-    default:
-        LOG_ERROR("Unimplemented backend renderer: {}.", static_cast<int>(state.renderer->current_backend));
-        break;
-    }
+    SDL_GetWindowSizeInPixels(state.window.get(), &w, &h);
 
     state.drawable_size.x = w;
     state.drawable_size.y = h;
-
+    
     if (h > 0) {
         const float window_aspect = static_cast<float>(w) / h;
         const float vita_aspect = static_cast<float>(DEFAULT_RES_WIDTH) / DEFAULT_RES_HEIGHT;
@@ -173,7 +162,7 @@ void update_viewport(EmuEnvState &state) {
 
 void init_paths(Root &root_paths) {
 #ifdef ANDROID
-    fs::path storage_path = fs::path(SDL_AndroidGetExternalStoragePath()) / "";
+    fs::path storage_path = fs::path(SDL_GetAndroidExternalStoragePath()) / "";
     fs::path vita_storage_path = storage_path / "vita/";
 
     root_paths.set_base_path(storage_path);
@@ -193,7 +182,6 @@ void init_paths(Root &root_paths) {
 #else
     auto sdl_base_path = SDL_GetBasePath();
     auto base_path = fs_utils::utf8_to_path(sdl_base_path);
-    SDL_free(sdl_base_path);
 
     root_paths.set_base_path(base_path);
     root_paths.set_static_assets_path(base_path);
@@ -356,7 +344,7 @@ bool init(EmuEnvState &state, const Root &root_paths) {
     if(fs::exists(fscheck)){
         if(!fs::equivalent(state.log_path, root_paths.get_base_path())){
             fs::copy_file(fscheck , state.log_path / "vita3k.log.txt", fs::copy_options::overwrite_existing);
-            SDL_AndroidShowToast(fmt::format("copying logs to {}", state.log_path).c_str(), 1, -1, 0, 0);
+            SDL_ShowAndroidToast(fmt::format("copying logs to {}", state.log_path).c_str(), 1, -1, 0, 0);
             fs::remove(fscheck);
         }
     }
@@ -423,11 +411,11 @@ bool init(EmuEnvState &state, const Root &root_paths) {
         break;
     }
     state.display.fullscreen = true;
-    window_type |= SDL_WINDOW_FULLSCREEN_DESKTOP;
+    window_type |= SDL_WINDOW_FULLSCREEN;
 #else
     if (state.cfg.fullscreen) {
         state.display.fullscreen = true;
-        window_type |= SDL_WINDOW_FULLSCREEN_DESKTOP;
+        window_type |= SDL_WINDOW_FULLSCREEN;
     }
 #endif
 
@@ -447,21 +435,22 @@ bool init(EmuEnvState &state, const Root &root_paths) {
     };
 #endif
 #ifdef ANDROID
+    
     if(SDL_GetAndroidSDKVersion() >= 30 && !state.cfg.native_screen) {
-        float ddpi, hdpi, vdpi, max = 160.f;
-        SDL_GetDisplayDPI(0, &ddpi, &hdpi, &vdpi);
-        window_type |= SDL_WINDOW_ALLOW_HIGHDPI;
-        LOG_INFO("Display DPI: ddpi = {}, hdpi = {}, vdpi = {}", ddpi, hdpi, vdpi);
-
-        state.dpi_scale = ddpi / max;
+        window_type |= SDL_WINDOW_HIGH_PIXEL_DENSITY;
+        float dpi = SDL_GetDisplayContentScale(SDL_GetPrimaryDisplay());
+        if(dpi == 0.0f)
+           LOG_ERROR("Failed to scaling dpi");
+        else
+           state.dpi_scale = dpi;
+        
     }
 
-    
-    if(state.cfg.native_screen || SDL_GetAndroidSDKVersion() < 30){
-       SDL_DisplayMode DM;
-       SDL_GetCurrentDisplayMode(0, &DM);
-       uint32_t width = DM.w;
-       uint32_t height = DM.h;
+    if(state.cfg.native_screen){
+       SDL_DisplayID displayID = SDL_GetPrimaryDisplay();
+       const SDL_DisplayMode* mode = SDL_GetCurrentDisplayMode(displayID);
+       uint32_t width = mode->w;
+       uint32_t height = mode->h;
        state.dpi_scale = static_cast<float>(width) / DEFAULT_RES_HEIGHT;
        LOG_INFO("Native screen size: H = {}, W = {}", height, width);
        LOG_INFO("DPI scale = {}", state.dpi_scale);
@@ -503,7 +492,8 @@ bool init(EmuEnvState &state, const Root &root_paths) {
     }
 #endif // ifdef android
 
-    state.window = WindowPtr(SDL_CreateWindow(window_title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, state.res_width_dpi_scale, state.res_height_dpi_scale, window_type | SDL_WINDOW_RESIZABLE), SDL_DestroyWindow);
+    state.window = WindowPtr(SDL_CreateWindow(window_title, state.res_width_dpi_scale, state.res_height_dpi_scale, window_type | SDL_WINDOW_RESIZABLE), SDL_DestroyWindow);
+    // state.window = WindowPtr(SDL_CreateWindow(window_title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, state.res_width_dpi_scale, state.res_height_dpi_scale, window_type | SDL_WINDOW_RESIZABLE), SDL_DestroyWindow);
     if (!state.window) {
         LOG_ERROR("SDL failed to create window!\n Reason:{}\n disabling some feature!", SDL_GetError());
         SDL_ClearError();
@@ -512,8 +502,8 @@ bool init(EmuEnvState &state, const Root &root_paths) {
             window_type = SDL_WINDOW_OPENGL;
         else
             window_type = SDL_WINDOW_VULKAN;
-            
-        state.window = WindowPtr(SDL_CreateWindow(window_title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, state.res_width_dpi_scale, state.res_height_dpi_scale, window_type), SDL_DestroyWindow);
+
+        state.window = WindowPtr(SDL_CreateWindow(window_title, state.res_width_dpi_scale, state.res_height_dpi_scale, window_type), SDL_DestroyWindow);
     }
         
     if (!state.window) {
@@ -528,7 +518,7 @@ bool init(EmuEnvState &state, const Root &root_paths) {
         }
         state.cfg.boot_fail = true;
         config::serialize_config(state.cfg, state.cfg.config_path);
-        SDL_Quit();
+        
         return false;
     }
 
@@ -537,6 +527,7 @@ bool init(EmuEnvState &state, const Root &root_paths) {
         if (renderer::init(state.window.get(), state.renderer, state.backend_renderer, state.cfg, root_paths, state.libadreno)) {
             update_viewport(state);
         } else {
+            LOG_TRACE("get hw render");
             switch (state.backend_renderer) {
             case renderer::Backend::OpenGL:
 #ifdef ANDROID
@@ -554,12 +545,15 @@ bool init(EmuEnvState &state, const Root &root_paths) {
                 error_dialog(fmt::format("Unknown backend renderer: {}.", state.cfg.backend_renderer));
                 break;
             }
+            LOG_TRACE("get hw render ok");
             return false;
         }
     }
 
 #ifdef ANDROID
+    LOG_TRACE("get android custom driver");
     state.renderer->current_custom_driver = state.cfg.current_config.custom_driver_name;
+    LOG_TRACE("get android custom driver OK");
 #endif
 
     if (!init(state.io, state.cache_path, state.log_path, state.pref_path, state.cfg.console)) {
@@ -567,8 +561,10 @@ bool init(EmuEnvState &state, const Root &root_paths) {
         return false;
     }
 
+    LOG_TRACE("init motion");
     state.motion.init();
-
+    LOG_TRACE("init motion OK");
+    
 #if USE_DISCORD
     if (discordrpc::init() && state.cfg.discord_rich_presence) {
         discordrpc::update_presence();
@@ -580,10 +576,12 @@ bool init(EmuEnvState &state, const Root &root_paths) {
         config::serialize_config(state.cfg, state.cfg.config_path);
     }
 #endif
+    LOG_TRACE("init finished");
     return true;
 }
 
 bool late_init(EmuEnvState &state) {
+    LOG_TRACE("begin late_init");
     // note: mem is not initialized yet but that's not an issue
     // the renderer is not using it yet, just storing it for later uses
     state.renderer->late_init(state.cfg, state.app_path, state.mem);
@@ -613,6 +611,7 @@ bool late_init(EmuEnvState &state) {
         return false;
     }
 
+    LOG_TRACE("end late_init");
     return true;
 }
 
