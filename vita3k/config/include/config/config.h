@@ -91,7 +91,8 @@ enum ScreenshotFormat {
     code(bool, "export-textures", false, export_textures)                                               \
     code(bool, "export-as-png", true, export_as_png)                                                    \
     code(std::string, "memory-mapping", "double-buffer", memory_mapping)                                \
-    code(std::string, "vk-mapping", "mailbox", vk_mapping)                                              \
+    code(std::string, "vk-mapping", "Mailbox", vk_mapping)                                              \
+    code(std::string, "deep-stencil", "D32Sfloat", deep_stencil)                                        \
     code(bool, "boot-apps-full-screen", false, boot_apps_full_screen)                                   \
     code(std::string, "audio-backend", "SDL", audio_backend)                                            \
     code(int, "audio-volume", 100, audio_volume)                                                        \
@@ -106,7 +107,7 @@ enum ScreenshotFormat {
     code(int, "delay-background", 4, delay_background)                                                  \
     code(int, "delay-start", 10, delay_start)                                                           \
     code(float, "background-alpha", .300f, background_alpha)                                            \
-    code(int, "log-level", static_cast<int>(spdlog::level::trace), log_level)                           \
+    code(int, "log-level", 0, log_level)                                                                \
     code(std::string, "cpu-backend", "Dynarmic", cpu_backend)                                           \
     code(bool, "cpu-opt", true, cpu_opt)                                                                \
     code(bool, "cpu-unsafe", false, cpu_unsafe)                                                         \
@@ -116,9 +117,9 @@ enum ScreenshotFormat {
     code(bool, "color-surface-debug", false, color_surface_debug)                                       \
     code(bool, "show-touchpad-cursor", true, show_touchpad_cursor)                                      \
     code(bool, "performance-overlay", false, performance_overlay)                                       \
-    code(int, "performance-overlay-detail", static_cast<int>(MINIMUM), performance_overlay_detail)      \
-    code(int, "performance-overlay-position", static_cast<int>(TOP_LEFT), performance_overlay_position) \
-    code(int, "screenshot-format", static_cast<int>(JPEG), screenshot_format)                           \
+    code(int, "performance-overlay-detail", 1, performance_overlay_detail)                              \
+    code(int, "performance-overlay-position", 1, performance_overlay_position)                          \
+    code(int, "screenshot-format", 1, screenshot_format)                                                \
     code(bool, "enable-gamepad-overlay", true, enable_gamepad_overlay)                                  \
     code(bool, "overlay-show-touch-switch", false, overlay_show_touch_switch)                           \
     code(float, "overlay-scale", 1.0f, overlay_scale)                                                   \
@@ -173,7 +174,7 @@ enum ScreenshotFormat {
     code(int, "screenmode-pos", 0, screenmode_pos)                                                      \
     code(uint64_t, "current-ime-lang", 4, current_ime_lang)                                             \
     code(bool, "native-screen", false, native_screen)                                                   \
-    code(int, "psn-signed-in", false, psn_signed_in)                                                    \
+    code(bool, "psn-signed-in", false, psn_signed_in)                                                   \
     code(bool, "http-enable", true, http_enable)                                                        \
     code(int, "http-timeout-attempts", 50, http_timeout_attempts)                                       \
     code(int, "http-timeout-sleep-ms", 100, http_timeout_sleep_ms)                                      \

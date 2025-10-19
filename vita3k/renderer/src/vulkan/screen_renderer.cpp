@@ -109,15 +109,23 @@ bool ScreenRenderer::setup(uint8_t vk_idx) {
 
     switch(vk_idx){
         case 1:
-            present_mode = vk::PresentModeKHR::eFifo;
-            break;
-/*        case 2:
             present_mode = vk::PresentModeKHR::eFifoRelaxed;
+            break;
+        case 2:
+            present_mode = vk::PresentModeKHR::eFifo;
             break;
         case 3:
             present_mode = vk::PresentModeKHR::eImmediate;
             break;
-*/
+        case 4:
+            present_mode = vk::PresentModeKHR::eSharedDemandRefresh;
+            break;
+        case 5:
+            present_mode = vk::PresentModeKHR::eSharedContinuousRefresh;
+            break;
+        case 6:
+            present_mode = vk::PresentModeKHR::eFifoLatestReadyEXT;
+            break;
         default:
             present_mode = vk::PresentModeKHR::eMailbox;
             break;
@@ -571,7 +579,7 @@ void ScreenRenderer::create_surface_image() {
 
     vk::BufferCreateInfo buffer_info{
         // make sure it is big enough
-        .size = 1024 * 1024 * sizeof(uint32_t),
+        .size = 1280 * 680 * sizeof(uint32_t),
         .usage = vk::BufferUsageFlagBits::eTransferSrc,
         .sharingMode = vk::SharingMode::eExclusive
     };

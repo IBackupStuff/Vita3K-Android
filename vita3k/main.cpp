@@ -308,7 +308,6 @@ int main(int argc, char *argv[]) {
             app::error_dialog(fail_text);
             return SDLInitFailed;
         }
-        LOG_TRACE("Finished SDL_Init");
     //    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
     }
 

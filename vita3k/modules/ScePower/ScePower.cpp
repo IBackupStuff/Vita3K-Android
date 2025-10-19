@@ -67,7 +67,7 @@ EXPORT(int, scePowerGetBatteryChargingStatus) {
 
 EXPORT(int, scePowerGetBatteryCycleCount) {
     TRACY_FUNC(scePowerGetBatteryCycleCount);
-    LOG_TRACE("scePowerGetBatteryCycleCount always 0");
+    LOG_TRACE_ONCE("scePowerGetBatteryCycleCount always 0");
     return 0;
     // return UNIMPLEMENTED();
 }
@@ -104,7 +104,7 @@ EXPORT(int, scePowerGetBatteryLifeTime) {
 
 EXPORT(int, scePowerGetBatteryRemainCapacity) {
     TRACY_FUNC(scePowerGetBatteryRemainCapacity);
-    LOG_TRACE("scePowerGetBatteryRemainCapacity always 2000mAh");
+    LOG_TRACE_ONCE("scePowerGetBatteryRemainCapacity always 2000mAh");
     return 2000;
     //return UNIMPLEMENTED();
 }
@@ -144,20 +144,20 @@ EXPORT(int, scePowerGetBatteryTemp) {
 
 EXPORT(float, scePowerGetBatteryVolt) {
     TRACY_FUNC(scePowerGetBatteryVolt);
-    LOG_TRACE("scePowerGetBatteryVolt ALWAYS 4.2v");
+    LOG_TRACE_ONCE("scePowerGetBatteryVolt ALWAYS 4.2v");
     return 4.2f; // 100%
    // return UNIMPLEMENTED();
 }
 
 EXPORT(int, scePowerGetBusClockFrequency) {
     TRACY_FUNC(scePowerGetBusClockFrequency);
-    LOG_TRACE("scePowerGetBusClockFrequency set to 222");
+    LOG_TRACE_ONCE("scePowerGetBusClockFrequency set to 222");
     return 222;
 }
 
 EXPORT(int, scePowerGetCaseTemp) {
     TRACY_FUNC(scePowerGetCaseTemp);
-    LOG_TRACE("scePowerGetCaseTemp set 25 celcius");
+    LOG_TRACE_ONCE("scePowerGetCaseTemp set 25 celcius");
     return 25;
     // return UNIMPLEMENTED();
 }
@@ -165,7 +165,7 @@ EXPORT(int, scePowerGetCaseTemp) {
 EXPORT(int, scePowerGetGpuClockFrequency) {
     TRACY_FUNC(scePowerGetGpuClockFrequency);
    // return 222;
-    LOG_TRACE("scePowerGetGpuClockFrequency set to 333Mhz");
+    LOG_TRACE_ONCE("scePowerGetGpuClockFrequency set to 333Mhz");
     return 333; // always overclock mode
 }
 

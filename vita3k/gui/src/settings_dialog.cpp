@@ -184,6 +184,7 @@ static bool get_custom_config(EmuEnvState &emuenv, const std::string &app_path) 
                 config.screen_filter = gpu_child.attribute("screen-filter").as_string();
                 config.memory_mapping = gpu_child.attribute("memory-mapping").as_string();
                 config.vk_mapping = gpu_child.attribute("vk-mapping").as_string();
+                config.deep_stencil = gpu_child.attribute("deep-stencil").as_string();
                 config.v_sync = gpu_child.attribute("v-sync").as_bool();
                 config.anisotropic_filtering = gpu_child.attribute("anisotropic-filtering").as_int();
                 config.async_pipeline_compilation = gpu_child.attribute("async-pipeline-compilation").as_bool();
@@ -259,6 +260,7 @@ void init_config(GuiState &gui, EmuEnvState &emuenv, const std::string &app_path
         config.screen_filter = emuenv.cfg.screen_filter;
         config.memory_mapping = emuenv.cfg.memory_mapping;
         config.vk_mapping = emuenv.cfg.vk_mapping;
+        config.deep_stencil = emuenv.cfg.deep_stencil;
         config.v_sync = emuenv.cfg.v_sync;
         config.anisotropic_filtering = emuenv.cfg.anisotropic_filtering;
         config.async_pipeline_compilation = emuenv.cfg.async_pipeline_compilation;
@@ -361,6 +363,7 @@ void save_config(GuiState &gui, EmuEnvState &emuenv) {  // has static
         gpu_child.append_attribute("screen-filter") = config.screen_filter.c_str();
         gpu_child.append_attribute("memory-mapping") = config.memory_mapping.c_str();
         gpu_child.append_attribute("vk-mapping") = config.vk_mapping.c_str();
+        gpu_child.append_attribute("deep-stencil") = config.deep_stencil.c_str();
         gpu_child.append_attribute("v-sync") = config.v_sync;
         gpu_child.append_attribute("anisotropic-filtering") = config.anisotropic_filtering;
         gpu_child.append_attribute("async-pipeline-compilation") = config.async_pipeline_compilation;
@@ -403,6 +406,7 @@ void save_config(GuiState &gui, EmuEnvState &emuenv) {  // has static
         emuenv.cfg.screen_filter = config.screen_filter;
         emuenv.cfg.memory_mapping = config.memory_mapping;
         emuenv.cfg.vk_mapping = config.vk_mapping;
+        emuenv.cfg.deep_stencil = config.deep_stencil;
         emuenv.cfg.v_sync = config.v_sync;
         emuenv.cfg.anisotropic_filtering = config.anisotropic_filtering;
         emuenv.cfg.async_pipeline_compilation = config.async_pipeline_compilation;
@@ -473,6 +477,7 @@ void set_config(EmuEnvState &emuenv, const std::string &app_path, bool custom) {
         emuenv.cfg.current_config.screen_filter = emuenv.cfg.screen_filter;
         emuenv.cfg.current_config.memory_mapping = emuenv.cfg.memory_mapping;
         emuenv.cfg.current_config.vk_mapping = emuenv.cfg.vk_mapping;
+        emuenv.cfg.current_config.deep_stencil = emuenv.cfg.deep_stencil;
         emuenv.cfg.current_config.v_sync = emuenv.cfg.v_sync;
         emuenv.cfg.current_config.anisotropic_filtering = emuenv.cfg.anisotropic_filtering;
         emuenv.cfg.current_config.async_pipeline_compilation = emuenv.cfg.async_pipeline_compilation;
@@ -972,34 +977,41 @@ void draw_settings_dialog(GuiState &gui, EmuEnvState &emuenv) {
             if (ImGui::IsItemHovered()) {
                 ImGui::SetTooltip("%s", lang.gpu["mapping_method_description"].c_str());
             }
-
-            if (emuenv.cfg.gpu_idx == 0) {
-                ImGui::Spacing();
-                std::vector<const char *> vk_surface_format_strings = {
-             //         "Immediate",
-                       "Mailbox",
-             //          "Fifo relaxed",
-                       "Fifo"
-                };
-                std::vector<std::string_view> vk_surface_format_methods_indexes = {
-              //         "Immediate",
-                       "mailbox",
-              //         "fifo-relaxed",
-                       "fifo"
-                };
-    
-                static int current_surface_format = std::find(vk_surface_format_methods_indexes.begin(), vk_surface_format_methods_indexes.end(), config.vk_mapping) - vk_surface_format_methods_indexes.begin();
-                if (ImGui::Combo(lang.gpu["surface_format_method"].c_str(), &current_surface_format, vk_surface_format_strings.data(), vk_surface_format_strings.size())) {
-                    config.vk_mapping = vk_surface_format_methods_indexes[current_surface_format];
-                }
-                if (ImGui::IsItemHovered()) {
-                    SetTooltipEx(lang.gpu["surface_format_method_description"].c_str());
-                    ImGui::Spacing();
-                }
-            }
-            if (is_ingame)
-                ImGui::EndDisabled();
+            ImGui::Spacing();
         }
+        ImGui::Spacing();
+        const std::vector<std::string> vk_surface_list_str = emuenv.renderer->get_vulkan_feature_list(0);
+
+        std::vector<const char *> vk_surface_list;
+        for (const auto &vk_surface : vk_surface_list_str)
+            vk_surface_list.push_back(vk_surface.c_str());
+
+        static int current_surface_format = std::find(vk_surface_list.begin(), vk_surface_list.end(), config.vk_mapping) - vk_surface_list.begin();
+        if (ImGui::Combo(lang.gpu["surface_format_method"].c_str(), &current_surface_format, vk_surface_list.data(), vk_surface_list.size())) {
+            config.vk_mapping = vk_surface_list[current_surface_format];
+        }
+        if (ImGui::IsItemHovered()) {
+            SetTooltipEx(lang.gpu["surface_format_method_description"].c_str());
+            ImGui::Spacing();
+        }
+        ImGui::Spacing();
+
+        const std::vector<std::string> stencil_list_str = emuenv.renderer->get_vulkan_feature_list(1);
+
+        std::vector<const char *> stencil_list;
+        for (const auto &stencil : stencil_list_str)
+            stencil_list.push_back(stencil.c_str());
+
+        static int current_stencil_list = std::find(stencil_list.begin(), stencil_list.end(), config.deep_stencil) - stencil_list.begin();
+        if(ImGui::Combo(lang.gpu["deep_stencil"].c_str(), &current_stencil_list, stencil_list.data(), static_cast<int>(stencil_list.size()))) {
+            config.deep_stencil = stencil_list_str[current_stencil_list];
+        }
+        if (ImGui::IsItemHovered()) {
+            SetTooltipEx(lang.gpu["deep_stencil_description"].c_str());
+            ImGui::Spacing();
+        }
+        if (is_ingame)
+            ImGui::EndDisabled();
 
         if (emuenv.renderer->support_custom_drivers()) {
             ImGui::Spacing();
