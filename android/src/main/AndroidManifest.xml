@@ -85,6 +85,7 @@
         android:allowBackup="true"
         android:theme="@style/AppTheme"
         android:hardwareAccelerated="true"
+        android:enableOnBackInvokedCallback="false"
         android:appCategory="game"
         android:isGame="true"
         android:hasFragileUserData="true"
