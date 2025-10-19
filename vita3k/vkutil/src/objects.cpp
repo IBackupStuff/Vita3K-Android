@@ -77,7 +77,7 @@ Image::~Image() {
     destroy();
 }
 
-void Image::init_image(vk::ImageUsageFlags usage, vk::ComponentMapping mapping, const vk::ImageCreateFlags image_create_flags, const void *pNext) {
+void Image::init_image(vk::ImageUsageFlags usage, vk::ComponentMapping mapping, const vk::ImageCreateFlags image_create_flags, const void *pNext, vk::Format stencil) {
     vk::ImageCreateInfo image_info{
         .pNext = pNext,
         .flags = image_create_flags,
@@ -102,8 +102,9 @@ void Image::init_image(vk::ImageUsageFlags usage, vk::ComponentMapping mapping, 
     constexpr vk::ImageUsageFlags view_usages = vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eStorage;
     if (!(usage & view_usages))
         return;
-
-    vk::ImageSubresourceRange range = (format == vk::Format::eD24UnormS8Uint) ? vkutil::ds_subresource_range : vkutil::color_subresource_range;
+    
+    // vk::ImageSubresourceRange range = (format == vk::Format::eD24UnormS8Uint) ? vkutil::ds_subresource_range : vkutil::color_subresource_range;
+    vk::ImageSubresourceRange range = (format == stencil) ? vkutil::ds_subresource_range : vkutil::color_subresource_range;
     vk::ImageViewCreateInfo view_info{
         .image = image,
         .viewType = vk::ImageViewType::e2D,
