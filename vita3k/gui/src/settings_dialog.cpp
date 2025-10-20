@@ -43,6 +43,9 @@
 
 #include <SDL3/SDL_video.h>
 #include <SDL3/SDL_audio.h>
+#ifdef ANDROID
+#include <SDL3/SDL_system.h>
+#endif
 
 #include <algorithm>
 #include <pugixml.hpp>
@@ -1571,6 +1574,14 @@ void draw_settings_dialog(GuiState &gui, EmuEnvState &emuenv) {
     }
     SetTooltipEx(lang.main_window["keep_changes"].c_str());
 
+    if(SDL_GetAndroidSDKVersion == 28){ // android 9 bug
+        // because imgui bug, we need much empty
+        // at end space to make button visible
+        ImGui::Spacing();
+        ImGui::Spacing();
+        ImGui::Spacing();
+        ImGui::Spacing();
+    }
     ImGui::ScrollWhenDragging();
     ImGui::End();
 }
