@@ -58,11 +58,12 @@ import java.util.Locale;
     SDL Activity
 */
 public class SDLActivity extends Activity implements View.OnSystemUiVisibilityChangeListener {
+/*
     private static final String TAG = "SDL";
     private static final int SDL_MAJOR_VERSION = 3;
     private static final int SDL_MINOR_VERSION = 3;
     private static final int SDL_MICRO_VERSION = 0;
-/*
+
     // Display InputType.SOURCE/CLASS of events and devices
     //
     // SDLActivity.debugSource(device.getSources(), "device[" + device.getName() + "]");
@@ -303,6 +304,10 @@ public class SDLActivity extends Activity implements View.OnSystemUiVisibilityCh
         };
     }
 
+    protected void setupLayout(ViewGroup layout){
+        layout.addView(mSurface);
+    }
+    
     // Load the .so
     public void loadLibraries() {
        for (String lib : getLibraries()) {
