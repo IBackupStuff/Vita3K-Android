@@ -687,4 +687,4 @@ public class HIDDeviceManager {
 
     native void HIDDeviceInputReport(int deviceID, byte[] report);
     native void HIDDeviceReportResponse(int deviceID, byte[] report);
-                }
+                                   }
