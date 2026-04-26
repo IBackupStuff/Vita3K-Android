@@ -304,7 +304,8 @@ void DestroyQueue::destroy_objects() {
         case vk::ObjectType::eImage: {
              auto image = vk::Image(static_cast<VkImage>(static_cast<uint64_t>(el)));
 #if defined(__aarch64__) || defined(__x86_64__)
-             auto allocation = std::bit_cast<vma::Allocation>(destroy_list[idx++]);
+             auto raw = static_cast<uint64_t>(destroy_list[idx++]);
+             auto allocation = vma::Allocation(raw); 
 #else
              auto allocation = reinterpret_cast<VmaAllocation>(static_cast<uint64_t>(destroy_list[idx++]));
 #endif
