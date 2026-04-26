@@ -256,7 +256,7 @@ void DestroyQueue::add_image(Image &image) {
 #if defined(__aarch64__) || defined(__x86_64__)
         destroy_list.push_back(std::bit_cast<uint64_t>(image.allocation));
 #else
-        destroy_list.push_back(static_cast<uint32_t>(reinterpret_cast<uintptr_t>(static_cast<VmaAllocation>(image.allocation))));
+        destroy_list.push_back(static_cast<uint64_t>(reinterpret_cast<uintptr_t>(static_cast<VmaAllocation>(image.allocation))));
 #endif
     }
 }
@@ -278,7 +278,7 @@ void DestroyQueue::add_cmd_buffer(vk::CommandBuffer cmd_buffer, vk::CommandPool 
 #if defined(__aarch64__) || defined(__x86_64__)
     destroy_list.push_back(std::bit_cast<uint64_t>(cmd_pool));
 #else
-    destroy_list.push_back(static_cast<uint32_t>(reinterpret_cast<uintptr_t>(cmd_pool)));
+    destroy_list.push_back(static_cast<uint64_t>(static_cast<VkCommandPool>(cmd_pool)));
 #endif
 }
 
@@ -307,7 +307,7 @@ void DestroyQueue::destroy_objects() {
 #if defined(__aarch64__) || defined(__x86_64__)
             auto allocation = std::bit_cast<vma::Allocation>(destroy_list[idx++]);
 #else
-            auto allocation = reinterpret_cast<VmaAllocation>(static_cast<uintptr_t>(destroy_list[idx++]));
+            auto allocation = reinterpret_cast<VmaAllocation>(static_cast<uint64_t>(destroy_list[idx++])
 #endif
             allocator.destroyImage(image, allocation);
             break;
@@ -333,7 +333,7 @@ void DestroyQueue::destroy_objects() {
             device.freeCommandBuffers(cmd_pool, cmd_buffer);
 #else
             auto cmd_buffer = reinterpret_cast<VkCommandBuffer>(static_cast<uintptr_t>(el));
-            auto cmd_pool = vk::CommandPool(reinterpret_cast<VkCommandPool>(destroy_list[idx++]));
+            auto cmd_pool = vk::CommandPool(static_cast<VkCommandPool>(static_cast<uint64_t>(destroy_list[idx++])));
             device.freeCommandBuffers(cmd_pool, vk::CommandBuffer(cmd_buffer));
 #endif
             break;
