@@ -268,7 +268,7 @@ void DestroyQueue::add_buffer(Buffer &buffer) {
 #if defined(__aarch64__) || defined(__x86_64__)
         destroy_list.push_back(std::bit_cast<uint64_t>(buffer.allocation));
 #else
-        destroy_list.push_back(static_cast<uint32_t>(reinterpret_cast<uintptr_t>(static_cast<VmaAllocation>(buffer.allocation))));
+        destroy_list.push_back(static_cast<uint64_t>(reinterpret_cast<uintptr_t>(static_cast<VmaAllocation>(buffer.allocation))));
 #endif
     }
 }
@@ -302,24 +302,24 @@ void DestroyQueue::destroy_objects() {
             // handle special cases apart
 
         case vk::ObjectType::eImage: {
+             auto image = vk::Image(static_cast<VkImage>(static_cast<uint64_t>(el)));
+#if defined(__aarch64__) || defined(__x86_64__)
+             auto allocation = std::bit_cast<vma::Allocation>(destroy_list[idx++]);
+#else
+             auto allocation = reinterpret_cast<VmaAllocation>(static_cast<uint64_t>(destroy_list[idx++]));
+#endif
+    allocator.destroyImage(image, allocation);
+    break;
+}
+
+
+        case vk::ObjectType::eBuffer: {
             // special case: this is a vma allocation
-            auto image = vk::Image(reinterpret_cast<VkImage>(el));
+            auto buffer = vk::Buffer(static_cast<VkBuffer>(static_cast<uint64_t>(el)));
 #if defined(__aarch64__) || defined(__x86_64__)
             auto allocation = std::bit_cast<vma::Allocation>(destroy_list[idx++]);
 #else
             auto allocation = reinterpret_cast<VmaAllocation>(static_cast<uint64_t>(destroy_list[idx++]));
-#endif
-            allocator.destroyImage(image, allocation);
-            break;
-        }
-
-        case vk::ObjectType::eBuffer: {
-            // special case: this is a vma allocation
-            auto buffer = vk::Buffer(reinterpret_cast<VkBuffer>(el));
-#if defined(__aarch64__) || defined(__x86_64__)
-            auto allocation = std::bit_cast<vma::Allocation>(destroy_list[idx++]);
-#else
-            auto allocation = reinterpret_cast<VmaAllocation>(static_cast<uintptr_t>(destroy_list[idx++]));
 #endif
             allocator.destroyBuffer(buffer, allocation);
             break;
@@ -332,7 +332,7 @@ void DestroyQueue::destroy_objects() {
             auto cmd_pool = std::bit_cast<vk::CommandPool>(destroy_list[idx++]);
             device.freeCommandBuffers(cmd_pool, cmd_buffer);
 #else
-            auto cmd_buffer = reinterpret_cast<VkCommandBuffer>(static_cast<uintptr_t>(el));
+            auto cmd_buffer = reinterpret_cast<VkCommandBuffer>(static_cast<uint64_t>(el));
             auto cmd_pool = vk::CommandPool(static_cast<VkCommandPool>(static_cast<uint64_t>(destroy_list[idx++])));
             device.freeCommandBuffers(cmd_pool, vk::CommandBuffer(cmd_buffer));
 #endif
