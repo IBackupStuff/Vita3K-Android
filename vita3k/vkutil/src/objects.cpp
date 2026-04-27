@@ -1,3 +1,4 @@
+
 // Vita3K emulator project
 // Copyright (C) 2026 Vita3K team
 //
@@ -291,11 +292,7 @@ void DestroyQueue::destroy_objects() {
             // special case: this is a vma allocation
             auto image = std::bit_cast<vk::Image>(el);
             auto allocation = reinterpret_cast<VmaAllocation>(static_cast<uintptr_t>(destroy_list[idx++]));
-#if defined(__arm__)
-            allocator.destroyImage(image, vk::Allocation(allocation));
-#else
             allocator.destroyImage(image, allocation);
-#endif
             break;
         }
 
@@ -303,11 +300,7 @@ void DestroyQueue::destroy_objects() {
             // special case: this is a vma allocation
             auto buffer = std::bit_cast<vk::Buffer>(el);
             auto allocation = reinterpret_cast<VmaAllocation>(static_cast<uintptr_t>(destroy_list[idx++]));
-#if defined(__arm__)
-            allocator.destroyBuffer(buffer, vk::Allocation(allocation));
-#else
             allocator.destroyBuffer(buffer, allocation);
-#endif
             break;
         }
 
