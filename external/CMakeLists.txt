@@ -290,6 +290,12 @@ elseif(ANDROID)
 	endif()
 endif()
 
+# See https://github.com/KhronosGroup/Vulkan-Hpp?tab=readme-ov-file#cc-interop-for-handles
+if(ARCHITECTURE STREQUAL "arm")
+	message(STATUS "Enabling Vulkan-Hpp typesafe conversion for arm architecture")
+	target_compile_definitions(vulkan INTERFACE VULKAN_HPP_TYPESAFE_CONVERSION=1)
+endif()
+
 add_library(vma INTERFACE)
 target_include_directories(vma INTERFACE
 	"${CMAKE_CURRENT_SOURCE_DIR}/VulkanMemoryAllocator-Hpp/include"
