@@ -318,7 +318,7 @@ void DestroyQueue::destroy_objects() {
 #if defined(__aarch64__) || defined(__x86_64__)
             auto allocation = std::bit_cast<vma::Allocation>(destroy_list[idx++]);
 #else
-            auto allocation = reinterpret_cast<VmaAllocation>(static_cast<uint64_t>(destroy_list[idx++]));
+            auto allocation = reinterpret_cast<vma::Allocation>(destroy_list[idx++]);
 #endif
             allocator.destroyBuffer(buffer, allocation);
             break;
