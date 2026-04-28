@@ -140,9 +140,11 @@ elseif (ARCHITECTURE STREQUAL "x86_64")
 endif ()
 
 if(ANDROID)
-  if (ARCHITECTURE STREQUAL "arm64")
-	add_subdirectory(libadrenotools)
- endif()
+   if (ARCHITECTURE STREQUAL "arm64")
+	  add_subdirectory(libadrenotools)
+   else()
+      add_subdirectory(libadrenotools EXCLUDE_FROM_ALL)
+   endif()
 endif()
 
 if(WIN32)
@@ -288,12 +290,6 @@ elseif(ANDROID)
 		
 		file(COPY "${CMAKE_BINARY_DIR}/external/validation_layers/${VALIDATION_BINARY}/${ANDROID_ABI}" DESTINATION "${CMAKE_CURRENT_SOURCE_DIR}/../android/prebuilt")
 	endif()
-endif()
-
-# See https://github.com/KhronosGroup/Vulkan-Hpp?tab=readme-ov-file#cc-interop-for-handles
-if(ARCHITECTURE STREQUAL "arm")
-	message(STATUS "Enabling Vulkan-Hpp typesafe conversion for arm architecture")
-	target_compile_definitions(vulkan INTERFACE VULKAN_HPP_TYPESAFE_CONVERSION=1)
 endif()
 
 add_library(vma INTERFACE)
