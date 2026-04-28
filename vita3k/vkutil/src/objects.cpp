@@ -294,7 +294,7 @@ void DestroyQueue::destroy_objects() {
 #if defined(__aarch64__) || defined(__x86_64__)
             allocator.destroyImage(image, allocation);
 #else
-            Allocation wrapped(allocation);
+            allocation wrapped(allocation);
             allocator.destroyImage(image, wrapped);
 #endif
             break;
@@ -307,7 +307,7 @@ void DestroyQueue::destroy_objects() {
 #if defined(__aarch64__) || defined(__x86_64__)
             allocator.destroyBuffer(buffer, allocation);
 #else
-            Allocation wrapped(allocation);
+            allocation wrapped(allocation);
             allocator.destroyBuffer(image, wrapped);
 #endif
 
